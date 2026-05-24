@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FPV Kamikaze — Strike Command</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="overlay">
+      <div id="menu" class="panel">
+        <h1>FPV KAMIKAZE</h1>
+        <p class="tagline">Strike Command — First Person Drone Ops</p>
+        <p class="desc">
+          Fly an FPV attack drone over hostile territory. Strafe convoys with your
+          machine gun, drop bombs on armor, or ram targets at full speed for
+          kamikaze damage.
+        </p>
+        <ul class="controls">
+          <li><kbd>W</kbd><kbd>S</kbd> Throttle up / down</li>
+          <li><kbd>A</kbd><kbd>D</kbd> Strafe left / right</li>
+          <li><kbd>Q</kbd><kbd>E</kbd> Yaw left / right</li>
+          <li><kbd>Shift</kbd> Boost (uses battery)</li>
+          <li><kbd>Mouse</kbd> Pitch &amp; roll (FPV)</li>
+          <li><kbd>LMB</kbd> Fire machine gun</li>
+          <li><kbd>F</kbd> Drop bomb</li>
+          <li><kbd>R</kbd> Respawn after destruction</li>
+        </ul>
+        <button id="start-btn" type="button">DEPLOY DRONE</button>
+      </div>
+      <div id="hud" class="hidden">
+        <div id="hud-top">
+          <span id="score">SCORE 0</span>
+          <span id="objectives">TARGETS 0/0</span>
+        </div>
+        <div id="crosshair"></div>
+        <div id="hud-bottom">
+          <div class="bar-group">
+            <label>HULL</label>
+            <div class="bar"><div id="health-bar" class="fill health"></div></div>
+            <span id="health-text">100</span>
+          </div>
+          <div class="bar-group">
+            <label>AMMO</label>
+            <div class="bar"><div id="ammo-bar" class="fill ammo"></div></div>
+            <span id="ammo-text">300</span>
+          </div>
+          <div class="bar-group">
+            <label>BOMBS</label>
+            <div class="bar"><div id="bomb-bar" class="fill bomb"></div></div>
+            <span id="bomb-text">6</span>
+          </div>
+          <div class="bar-group">
+            <label>BATT</label>
+            <div class="bar"><div id="battery-bar" class="fill battery"></div></div>
+            <span id="battery-text">100</span>
+          </div>
+        </div>
+        <div id="warnings"></div>
+        <div id="message" class="hidden"></div>
+      </div>
+      <div id="gameover" class="panel hidden">
+        <h2>DRONE LOST</h2>
+        <p id="final-score">Score: 0</p>
+        <button id="retry-btn" type="button">REDEPLOY</button>
+      </div>
+      <div id="victory" class="panel hidden">
+        <h2>AREA SECURED</h2>
+        <p id="victory-score">Score: 0</p>
+        <button id="victory-btn" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
