@@ -10,22 +10,20 @@
     <div id="overlay">
       <div id="menu" class="panel">
         <h1>FPV KAMIKAZE</h1>
-        <p class="tagline">Strike Command — First Person Drone Ops</p>
+        <p class="tagline">ACRO FPV v3 — visible quad frame in cockpit view</p>
         <p class="desc">
-          Fly an FPV attack drone over hostile territory. Strafe convoys with your
-          machine gun, drop bombs on armor, or ram targets at full speed for
-          kamikaze damage.
+          Real rate-mode FPV: mouse tilts the quad (pitch/roll), W/S is throttle,
+          A/D or Q/E yaws. You will see carbon arms, green LEDs, and spinning
+          props in the corners of your goggles view.
         </p>
         <ul class="controls">
           <li><kbd>W</kbd><kbd>S</kbd> Throttle up / down</li>
-          <li><kbd>A</kbd><kbd>D</kbd> Strafe left / right</li>
-          <li><kbd>Q</kbd><kbd>E</kbd> Yaw left / right</li>
-          <li><kbd>Space</kbd> Ascend · <kbd>Ctrl</kbd> Descend</li>
-          <li><kbd>Shift</kbd> Boost (uses battery)</li>
-          <li><kbd>Mouse</kbd> Look (smooth FPV camera)</li>
-          <li><kbd>LMB</kbd> Fire machine gun</li>
+          <li><kbd>Mouse</kbd> Pitch &amp; roll (rate mode)</li>
+          <li><kbd>A</kbd><kbd>D</kbd> or <kbd>Q</kbd><kbd>E</kbd> Yaw</li>
+          <li><kbd>Shift</kbd> Boost thrust</li>
+          <li><kbd>LMB</kbd> Machine gun</li>
           <li><kbd>F</kbd> Drop bomb</li>
-          <li><kbd>R</kbd> Respawn after destruction</li>
+          <li><kbd>R</kbd> Respawn</li>
         </ul>
         <button id="start-btn" type="button">DEPLOY DRONE</button>
       </div>
@@ -35,6 +33,11 @@
           <span id="objectives">TARGETS 0/0</span>
         </div>
         <div id="crosshair"></div>
+        <div id="fpv-osd">
+          <div id="throttle-osd">THR 35%</div>
+          <div id="horizon-wrap"><div id="horizon-line"></div></div>
+          <span id="build-tag">FPV ACRO v3</span>
+        </div>
         <div id="hud-bottom">
           <div class="bar-group">
             <label>HULL</label>

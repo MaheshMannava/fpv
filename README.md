@@ -20,12 +20,13 @@ npm run preview # preview production build
 
 | Input | Action |
 |-------|--------|
-| W / S | Throttle forward / back |
+| W / S | Move forward / back (camera-relative) |
 | A / D | Strafe |
 | Q / E | Yaw |
+| Space / Ctrl | Ascend / descend |
 | Shift | Boost (drains battery) |
-| Mouse | Pitch & roll (acro FPV) |
-| LMB / Space | Machine gun |
+| Mouse | Smooth FPV look |
+| LMB | Machine gun |
 | F | Drop bomb |
 | R | Respawn after destruction |
 

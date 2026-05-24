@@ -61,6 +61,8 @@ export class Game {
       finalScore: document.getElementById('final-score'),
       victoryScore: document.getElementById('victory-score'),
       damageVignette: document.getElementById('damage-vignette'),
+      throttleOsd: document.getElementById('throttle-osd'),
+      horizonLine: document.getElementById('horizon-line'),
     };
 
     window.addEventListener('resize', () => this.resize());
@@ -112,7 +114,7 @@ export class Game {
     this.enemyBullets.clear();
     this.bombs.clear();
     this.effects.clear();
-    this.showMessage('Hostile convoys active — they will return fire.');
+    this.showMessage('ACRO FPV v3 — hold W to climb, mouse to tilt.');
   }
 
   loop() {
@@ -271,5 +273,14 @@ export class Game {
     if (engaging) warnings.push('INCOMING FIRE');
     if (warnings.length && this.running) this.showWarning(warnings.join(' · '));
     else if (!this.ui.warnings.textContent.includes('Click')) this.showWarning('');
+
+    if (this.ui.throttleOsd && d.alive) {
+      this.ui.throttleOsd.textContent = `THR ${d.getThrottlePercent()}%`;
+    }
+    if (this.ui.horizonLine && d.alive) {
+      const rollDeg = (d.roll * 180) / Math.PI;
+      const pitchPx = d.pitch * 55;
+      this.ui.horizonLine.style.transform = `rotate(${rollDeg}deg) translateY(${pitchPx}px)`;
+    }
   }
 }
