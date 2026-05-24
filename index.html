@@ -20,8 +20,9 @@
           <li><kbd>W</kbd><kbd>S</kbd> Throttle up / down</li>
           <li><kbd>A</kbd><kbd>D</kbd> Strafe left / right</li>
           <li><kbd>Q</kbd><kbd>E</kbd> Yaw left / right</li>
+          <li><kbd>Space</kbd> Ascend · <kbd>Ctrl</kbd> Descend</li>
           <li><kbd>Shift</kbd> Boost (uses battery)</li>
-          <li><kbd>Mouse</kbd> Pitch &amp; roll (FPV)</li>
+          <li><kbd>Mouse</kbd> Look (smooth FPV camera)</li>
           <li><kbd>LMB</kbd> Fire machine gun</li>
           <li><kbd>F</kbd> Drop bomb</li>
           <li><kbd>R</kbd> Respawn after destruction</li>
@@ -70,6 +71,7 @@
         <button id="victory-btn" type="button">PLAY AGAIN</button>
       </div>
     </div>
+    <div id="damage-vignette" aria-hidden="true"></div>
     <canvas id="game-canvas"></canvas>
     <script type="module" src="/src/main.js"></script>
   </body>

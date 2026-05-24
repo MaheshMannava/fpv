@@ -4,7 +4,9 @@ import { Input } from './Input.js';
 import { createWorld } from './World.js';
 import { Drone } from './Drone.js';
 import { spawnVehicles } from './Vehicle.js';
-import { BulletPool, BombSystem } from './Weapons.js';
+import { BulletPool, BombSystem, EnemyBulletPool } from './Weapons.js';
+import { EffectsManager } from './Effects.js';
+import { createHighQualityRenderer, createComposer } from './RendererSetup.js';
 
 export class Game {
   constructor(canvas) {
@@ -13,12 +15,10 @@ export class Game {
     this.running = false;
     this.score = 0;
     this.kills = 0;
+    this.damageFlash = 0;
+    this.explosionFlash = 0;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
+    this.renderer = createHighQualityRenderer(canvas);
     this.scene = new THREE.Scene();
     this.world = createWorld(this.scene);
     this.vehicles = spawnVehicles(
@@ -29,12 +29,17 @@ export class Game {
 
     const spawn = new THREE.Vector3(0, DRONE.respawnHeight, -60);
     this.drone = new Drone(this.scene, spawn);
+    this.effects = new EffectsManager(this.scene);
     this.bullets = new BulletPool(this.scene);
-    this.bombs = new BombSystem(this.scene);
+    this.enemyBullets = new EnemyBulletPool(this.scene);
+    this.bombs = new BombSystem(this.scene, this.effects);
+
+    const { composer, bloom } = createComposer(this.renderer, this.scene, this.drone.camera);
+    this.composer = composer;
+    this.bloom = bloom;
 
     this.clock = new THREE.Clock();
     this.messageTimer = 0;
-    this.currentMessage = '';
 
     this.ui = {
       hud: document.getElementById('hud'),
@@ -55,6 +60,7 @@ export class Game {
       message: document.getElementById('message'),
       finalScore: document.getElementById('final-score'),
       victoryScore: document.getElementById('victory-score'),
+      damageVignette: document.getElementById('damage-vignette'),
     };
 
     window.addEventListener('resize', () => this.resize());
@@ -72,6 +78,8 @@ export class Game {
     const w = window.innerWidth;
     const h = window.innerHeight;
     this.renderer.setSize(w, h);
+    this.composer.setSize(w, h);
+    this.bloom.resolution.set(w, h);
     this.drone.syncCamera(w / h);
   }
 
@@ -99,20 +107,12 @@ export class Game {
       this.world.getHeightAt.bind(this.world)
     );
     this.drone.reset();
-    this.drone.group.position.set(0, DRONE.respawnHeight, -60);
-    this.bullets.active.forEach((b) => {
-      this.scene.remove(b.mesh);
-      b.mesh.geometry.dispose();
-      b.mesh.material.dispose();
-    });
-    this.bullets.active = [];
-    this.bombs.active.forEach((b) => {
-      this.scene.remove(b.mesh);
-      b.mesh.geometry.dispose();
-      b.mesh.material.dispose();
-    });
-    this.bombs.active = [];
-    this.showMessage('All targets marked. Good hunting.');
+    this.drone.rig.position.set(0, DRONE.respawnHeight, -60);
+    this.bullets.clear();
+    this.enemyBullets.clear();
+    this.bombs.clear();
+    this.effects.clear();
+    this.showMessage('Hostile convoys active — they will return fire.');
   }
 
   loop() {
@@ -120,7 +120,17 @@ export class Game {
     requestAnimationFrame(() => this.loop());
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.update(dt);
-    this.renderer.render(this.scene, this.drone.camera);
+    this.composer.render();
+    this.updateScreenEffects(dt);
+  }
+
+  updateScreenEffects(dt) {
+    if (this.ui.damageVignette) {
+      this.damageFlash = Math.max(0, this.damageFlash - dt * 2.5);
+      this.explosionFlash = Math.max(0, this.explosionFlash - dt * 3);
+      const a = Math.min(0.65, this.damageFlash * 0.5 + this.explosionFlash * 0.35);
+      this.ui.damageVignette.style.opacity = String(a);
+    }
   }
 
   update(dt) {
@@ -128,10 +138,12 @@ export class Game {
 
     if (input.isDown('KeyR') && !drone.alive) {
       drone.reset();
-      drone.group.position.set(0, DRONE.respawnHeight, -60);
+      drone.rig.position.set(0, DRONE.respawnHeight, -60);
       this.showMessage('Drone redeployed.');
       this.ui.gameover.classList.add('hidden');
     }
+
+    this.effects.update(dt);
 
     if (!drone.alive) {
       this.updateHUD();
@@ -140,13 +152,11 @@ export class Game {
 
     drone.update(dt, input, this.world.getHeightAt.bind(this.world));
 
-    if (input.fire || input.isDown('Space')) {
+    if (input.fire) {
       drone.fire(this.bullets);
     }
     if (input.isDown('KeyF') && drone.canDropBomb()) {
-      if (drone.dropBomb(this.bombs)) {
-        this.showMessage('Bomb away!');
-      }
+      if (drone.dropBomb(this.bombs)) this.showMessage('Bomb away!');
     }
 
     this.bullets.update(dt, this.vehicles, (v, dmg) => this.damageVehicle(v, dmg));
@@ -156,25 +166,36 @@ export class Game {
       this.world.getHeightAt.bind(this.world),
       (v, dmg) => {
         if (v) this.damageVehicle(v, dmg);
+        else if (dmg === 0) this.explosionFlash = 1;
       }
     );
 
+    const onEnemyFire = (origin, dir, damage) => {
+      this.enemyBullets.spawn(origin, dir, damage);
+    };
+
     for (const v of this.vehicles) {
-      v.update(dt, this.world.getHeightAt.bind(this.world));
+      v.update(dt, this.world.getHeightAt.bind(this.world), drone.position, onEnemyFire);
     }
+
+    this.enemyBullets.update(dt, drone, (dmg) => {
+      drone.takeDamage(dmg);
+      this.damageFlash = 1;
+      if (!drone.alive) this.onDroneDestroyed();
+    });
 
     const ramTarget = drone.checkKamikaze(this.vehicles);
     if (ramTarget) {
       this.damageVehicle(ramTarget, DRONE.kamikazeTargetDamage);
-      const reason = drone.takeDamage(DRONE.kamikazeSelfDamage, 'kamikaze impact');
-      this.showMessage(`KAMIKAZE HIT — ${ramTarget.def.label} — hull damaged`);
-      drone.velocity.multiplyScalar(-0.3);
+      drone.takeDamage(DRONE.kamikazeSelfDamage);
+      this.effects.spawnExplosion(ramTarget.group.position, 0.9);
+      this.damageFlash = 0.8;
+      this.showMessage(`KAMIKAZE — ${ramTarget.def.label}`);
+      drone.velocity.multiplyScalar(-0.35);
       if (!drone.alive) this.onDroneDestroyed();
     }
 
-    const aliveCount = this.vehicles.filter((v) => v.alive).length;
-    if (aliveCount === 0) this.onVictory();
-
+    if (this.vehicles.every((v) => !v.alive)) this.onVictory();
     if (!drone.alive) this.onDroneDestroyed();
 
     if (this.messageTimer > 0) {
@@ -191,11 +212,14 @@ export class Game {
     if (destroyed) {
       this.score += vehicle.def.score;
       this.kills++;
+      this.effects.spawnExplosion(vehicle.group.position, 1.4);
+      this.explosionFlash = 0.6;
       this.showMessage(`${vehicle.def.label} destroyed +${vehicle.def.score}`);
     }
   }
 
   onDroneDestroyed() {
+    if (!this.ui.gameover.classList.contains('hidden')) return;
     this.input.unlockPointer();
     this.ui.finalScore.textContent = `Score: ${this.score} | Kills: ${this.kills}`;
     this.ui.gameover.classList.remove('hidden');
@@ -211,7 +235,6 @@ export class Game {
   }
 
   showMessage(text) {
-    this.currentMessage = text;
     this.ui.message.textContent = text;
     this.ui.message.classList.remove('hidden');
     this.messageTimer = 2.5;
@@ -242,6 +265,10 @@ export class Game {
     if (d.bombs === 0) warnings.push('NO BOMBS');
     if (d.battery < 20) warnings.push('LOW BATTERY');
     if (d.health < 30 && d.alive) warnings.push('CRITICAL HULL');
+    const engaging = this.vehicles.some(
+      (v) => v.alive && (v.aiState === 2 || v.aiState === 3)
+    );
+    if (engaging) warnings.push('INCOMING FIRE');
     if (warnings.length && this.running) this.showWarning(warnings.join(' · '));
     else if (!this.ui.warnings.textContent.includes('Click')) this.showWarning('');
   }
