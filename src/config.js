@@ -5,29 +5,27 @@ export const DRONE = {
   maxAmmo: 300,
   maxBombs: 6,
   maxBattery: 100,
-  boostMultiplier: 1.55,
-  batteryDrainBoost: 22,
-  batteryRegen: 10,
-  /** World-units/s² — smooth acceleration */
-  moveAccel: 42,
-  strafeAccel: 32,
-  verticalAccel: 28,
-  /** Higher = snappier stop */
-  moveDamping: 5.5,
-  maxSpeed: 32,
-  maxVerticalSpeed: 18,
-  /** Radians per mouse pixel — tuned for 1080p feel */
-  mouseSensitivity: 0.00135,
-  /** 1/s — camera aim smoothing (higher = tighter) */
-  lookSmoothing: 18,
-  maxPitch: 1.35,
-  yawRate: 1.8,
-  respawnHeight: 38,
-  kamikazeMinSpeed: 16,
+  boostMultiplier: 1.5,
+  batteryDrainBoost: 20,
+  batteryRegen: 12,
+  /** 0–1 throttle per second when holding W/S */
+  throttleSpool: 1.8,
+  minThrottle: 0.12,
+  maxThrottle: 1,
+  /** Lift force at full throttle */
+  maxThrust: 38,
+  gravity: 14,
+  /** Air drag 1/s */
+  drag: 1.2,
+  maxSpeed: 45,
+  /** radians per mouse pixel — instant acro, no lag */
+  pitchAngleSens: 0.0032,
+  rollAngleSens: 0.0032,
+  yawRateKey: 2.2,
+  respawnHeight: 40,
+  kamikazeMinSpeed: 14,
   kamikazeSelfDamage: 40,
   kamikazeTargetDamage: 120,
-  /** Visual body tilt follows velocity */
-  tiltStrength: 0.22,
 };
 
 export const WEAPONS = {
