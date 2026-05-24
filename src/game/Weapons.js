@@ -1,22 +1,26 @@
 import * as THREE from 'three';
 import { WEAPONS } from '../config.js';
+import { applyBombDamage } from './Effects.js';
+
+const tracerGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 4);
+tracerGeo.rotateX(Math.PI / 2);
 
 export class BulletPool {
-  constructor(scene, max = 80) {
+  constructor(scene) {
     this.scene = scene;
     this.active = [];
-    this.geo = new THREE.SphereGeometry(0.08, 4, 4);
-    this.mat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+    this.mat = new THREE.MeshBasicMaterial({ color: 0xffee88 });
   }
 
   spawn(origin, direction) {
-    const mesh = new THREE.Mesh(this.geo, this.mat.clone());
+    const mesh = new THREE.Mesh(tracerGeo, this.mat.clone());
     mesh.position.copy(origin);
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction.clone().normalize());
     this.scene.add(mesh);
     this.active.push({
       mesh,
-      vel: direction.clone().multiplyScalar(WEAPONS.bulletSpeed),
-      life: 2,
+      vel: direction.clone().normalize().multiplyScalar(WEAPONS.bulletSpeed),
+      life: 2.5,
     });
   }
 
@@ -31,7 +35,7 @@ export class BulletPool {
         if (!v.alive) continue;
         const dist = b.mesh.position.distanceTo(v.group.position);
         const [w, , d] = v.def.size;
-        if (dist < Math.max(w, d) * 0.6) {
+        if (dist < Math.max(w, d) * 0.55) {
           onHit(v, WEAPONS.bulletDamage);
           hit = true;
           break;
@@ -40,74 +44,123 @@ export class BulletPool {
 
       if (hit || b.life <= 0 || b.mesh.position.y < 0) {
         this.scene.remove(b.mesh);
-        b.mesh.geometry.dispose();
         b.mesh.material.dispose();
         this.active.splice(i, 1);
       }
     }
   }
+
+  clear() {
+    for (const b of this.active) {
+      this.scene.remove(b.mesh);
+      b.mesh.material.dispose();
+    }
+    this.active = [];
+  }
 }
 
-export class BombSystem {
+export class EnemyBulletPool {
   constructor(scene) {
     this.scene = scene;
     this.active = [];
-    this.geo = new THREE.SphereGeometry(0.35, 8, 8);
-    this.mat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.6 });
+    this.geo = new THREE.SphereGeometry(0.12, 6, 6);
+    this.mat = new THREE.MeshBasicMaterial({ color: 0xff6644 });
   }
 
-  drop(origin, velocity) {
+  spawn(origin, direction, damage = WEAPONS.enemyBulletDamage) {
     const mesh = new THREE.Mesh(this.geo, this.mat.clone());
     mesh.position.copy(origin);
     this.scene.add(mesh);
     this.active.push({
       mesh,
-      vel: velocity.clone(),
-      armed: false,
+      vel: direction.clone().normalize().multiplyScalar(WEAPONS.enemyBulletSpeed),
+      damage,
+      life: 4,
     });
   }
 
-  update(dt, vehicles, getHeightAt, onExplode) {
+  update(dt, drone, onHitDrone) {
+    if (!drone.alive) return;
     for (let i = this.active.length - 1; i >= 0; i--) {
       const b = this.active[i];
-      b.vel.y -= 18 * dt;
       b.mesh.position.addScaledVector(b.vel, dt);
-      b.mesh.rotation.x += dt * 4;
+      b.life -= dt;
 
-      const groundY = getHeightAt(b.mesh.position.x, b.mesh.position.z) + 0.2;
+      if (b.mesh.position.distanceTo(drone.position) < 1.1) {
+        onHitDrone(b.damage);
+        this.remove(i, b);
+        continue;
+      }
+      if (b.life <= 0 || b.mesh.position.y < 0) {
+        this.remove(i, b);
+      }
+    }
+  }
+
+  remove(i, b) {
+    this.scene.remove(b.mesh);
+    b.mesh.material.dispose();
+    this.active.splice(i, 1);
+  }
+
+  clear() {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      this.remove(i, this.active[i]);
+    }
+  }
+}
+
+export class BombSystem {
+  constructor(scene, effects) {
+    this.scene = scene;
+    this.effects = effects;
+    this.active = [];
+    this.geometry = new THREE.CapsuleGeometry(0.22, 0.35, 6, 12);
+    this.material = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+  }
+
+  drop(origin, velocity) {
+    const mesh = new THREE.Mesh(this.geometry, this.material.clone());
+    mesh.position.copy(origin);
+    this.scene.add(mesh);
+    this.active.push({ mesh, vel: velocity.clone(), spin: Math.random() * 10 });
+  }
+
+  update(dt, vehicles, getHeightAt, onExplodeVisual) {
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const b = this.active[i];
+      b.vel.y -= 22 * dt;
+      b.mesh.position.addScaledVector(b.vel, dt);
+      b.mesh.rotation.x += dt * b.spin;
+      b.mesh.rotation.z += dt * b.spin * 0.7;
+
+      const groundY = getHeightAt(b.mesh.position.x, b.mesh.position.z) + 0.25;
       if (b.mesh.position.y <= groundY) {
-        this.explode(b, vehicles, onExplode);
+        const pos = b.mesh.position.clone();
+        pos.y = groundY;
+        this.explode(b, pos, vehicles, onExplodeVisual);
         this.active.splice(i, 1);
       }
     }
   }
 
-  explode(bomb, vehicles, onExplode) {
-    const pos = bomb.mesh.position.clone();
+  explode(bomb, pos, vehicles, onExplodeVisual) {
     this.scene.remove(bomb.mesh);
-    bomb.mesh.geometry.dispose();
     bomb.mesh.material.dispose();
+    this.effects.spawnExplosion(pos, 1.2);
+    applyBombDamage(pos, vehicles, (v, dmg) => onExplodeVisual(v, dmg));
+    onExplodeVisual(null, 0, pos);
+  }
 
-    const flash = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.9 })
-    );
-    flash.position.copy(pos);
-    this.scene.add(flash);
-    setTimeout(() => {
-      this.scene.remove(flash);
-      flash.geometry.dispose();
-      flash.material.dispose();
-    }, 200);
-
-    for (const v of vehicles) {
-      if (!v.alive) continue;
-      const dist = pos.distanceTo(v.group.position);
-      if (dist < WEAPONS.bombRadius) {
-        const falloff = 1 - dist / WEAPONS.bombRadius;
-        onExplode(v, WEAPONS.bombDamage * falloff);
-      }
+  clear() {
+    for (const b of this.active) {
+      this.scene.remove(b.mesh);
+      b.mesh.material.dispose();
     }
-    onExplode(null, 0, pos);
+    this.active = [];
   }
 }

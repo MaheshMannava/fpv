@@ -20,6 +20,20 @@ body {
   height: 100%;
 }
 
+#damage-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 35%,
+    rgba(180, 40, 20, 0.55) 100%
+  );
+  transition: opacity 0.05s linear;
+}
+
 #overlay {
   position: fixed;
   inset: 0;

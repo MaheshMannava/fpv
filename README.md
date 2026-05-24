@@ -51,7 +51,11 @@ npm run preview # preview production build
 
 ### Kamikaze ram
 
-Colliding with a vehicle above **18 m/s** deals **120** damage to the target and **45** self-damage. High risk, high reward for heavily armored tanks.
+Colliding with a vehicle above **16 m/s** deals **120** damage to the target and **40** self-damage.
+
+### Enemy AI
+
+Convoys **detect** the drone within range, **track** it with turrets and soldier look-at, then **engage** with return fire. Trucks **evade** when you get close; tanks and APCs hold and shoot.
 
 ### Enemy types
 
@@ -71,9 +75,11 @@ src/
     Game.js          # Loop, scoring, HUD
     Drone.js         # Flight + weapons interface
     Vehicle.js       # Enemy convoys
-    Weapons.js       # Bullets & bombs
-    World.js         # Terrain & lighting
+    Weapons.js       # Bullets, bombs, enemy projectiles
+    Effects.js       # Explosion particles & shockwaves
+    RendererSetup.js # ACES tone mapping + bloom
+    World.js         # Terrain, sky shader, lighting
     Input.js         # Keyboard + pointer lock
 ```
 
-Built with [Vite](https://vitejs.dev/) and [Three.js](https://threejs.org/).
+Built with [Vite](https://vitejs.dev/) and [Three.js](https://threejs.org/). Uses post-processing bloom for explosions and muzzle flash.
