@@ -114,7 +114,7 @@ export class Game {
     this.enemyBullets.clear();
     this.bombs.clear();
     this.effects.clear();
-    this.showMessage('ACRO FPV v3 — hold W to climb, mouse to tilt.');
+    this.showMessage('RPG kamikaze rig — hold W, mouse to tilt.');
   }
 
   loop() {

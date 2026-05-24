@@ -8,16 +8,14 @@ export const DRONE = {
   boostMultiplier: 1.5,
   batteryDrainBoost: 20,
   batteryRegen: 12,
-  /** 0–1 throttle per second when holding W/S */
-  throttleSpool: 1.8,
-  minThrottle: 0.12,
+  /** Heavy RPG payload — slow spool */
+  throttleSpool: 1.35,
+  minThrottle: 0.15,
   maxThrottle: 1,
-  /** Lift force at full throttle */
-  maxThrust: 38,
-  gravity: 14,
-  /** Air drag 1/s */
-  drag: 1.2,
-  maxSpeed: 45,
+  maxThrust: 34,
+  gravity: 15.5,
+  drag: 1.45,
+  maxSpeed: 38,
   /** radians per mouse pixel — instant acro, no lag */
   pitchAngleSens: 0.0032,
   rollAngleSens: 0.0032,

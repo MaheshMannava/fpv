@@ -115,19 +115,28 @@ export class BombSystem {
     this.scene = scene;
     this.effects = effects;
     this.active = [];
-    this.geometry = new THREE.CapsuleGeometry(0.22, 0.35, 6, 12);
+    const cone = new THREE.ConeGeometry(0.12, 0.35, 10);
+    const cyl = new THREE.CylinderGeometry(0.12, 0.13, 0.25, 10);
+    this.geometry = cone;
+    this.cylGeometry = cyl;
     this.material = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      metalness: 0.85,
-      roughness: 0.25,
+      color: 0x9a7b42,
+      metalness: 0.72,
+      roughness: 0.38,
     });
   }
 
   drop(origin, velocity) {
-    const mesh = new THREE.Mesh(this.geometry, this.material.clone());
-    mesh.position.copy(origin);
-    this.scene.add(mesh);
-    this.active.push({ mesh, vel: velocity.clone(), spin: Math.random() * 10 });
+    const group = new THREE.Group();
+    const nose = new THREE.Mesh(this.geometry, this.material.clone());
+    nose.rotation.x = Math.PI / 2;
+    const body = new THREE.Mesh(this.cylGeometry, this.material.clone());
+    body.rotation.x = Math.PI / 2;
+    body.position.z = 0.2;
+    group.add(nose, body);
+    group.position.copy(origin);
+    this.scene.add(group);
+    this.active.push({ mesh: group, vel: velocity.clone(), spin: Math.random() * 10 });
   }
 
   update(dt, vehicles, getHeightAt, onExplodeVisual) {
@@ -150,7 +159,9 @@ export class BombSystem {
 
   explode(bomb, pos, vehicles, onExplodeVisual) {
     this.scene.remove(bomb.mesh);
-    bomb.mesh.material.dispose();
+    bomb.mesh.traverse((c) => {
+      if (c.material) c.material.dispose();
+    });
     this.effects.spawnExplosion(pos, 1.2);
     applyBombDamage(pos, vehicles, (v, dmg) => onExplodeVisual(v, dmg));
     onExplodeVisual(null, 0, pos);
